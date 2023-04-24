@@ -31,7 +31,6 @@ MCH_BONE_EXTENSION_LAYER = 14
 DEF_BONE_LAYER = 15
 MCH_BONE_LAYER = 31
 
-
 def deselect_edit_bones(ob):
     for b in ob.data.edit_bones:
         b.select = False
@@ -1455,4 +1454,6 @@ def unregister():
 
 
 if __name__ == "__main__":
+
+    #main
     register()
