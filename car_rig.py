@@ -15,6 +15,7 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
+import pprint
 
 # <pep8 compliant>
 
@@ -105,7 +106,10 @@ def name_range(prefix, nb=1000):
 def get_widget(name):
     widget = bpy.data.objects.get(name)
     if widget is None:
-        from . import widgets
+
+        # from . import widgets
+        import widgets
+
         widgets.create()
         widget = bpy.data.objects.get(name)
     return widget
@@ -493,8 +497,12 @@ class ArmatureGenerator(object):
 
             self.generate_bone_groups()
             dispatch_bones_to_armature_layers(self.ob)
+
         finally:
             self.ob.location += location
+
+        self.generate_softbody_rig()
+
 
     def generate_animation_rig(self):
         amt = self.ob.data
@@ -1162,6 +1170,45 @@ class ArmatureGenerator(object):
             ground_sensor_names += tuple(wheel_dimension.names('GroundSensor'))
         ground_sensor_names += tuple("SHP-%s" % i for i in ground_sensor_names)
         create_bone_group(pose, 'GroundSensor', color_set='THEME02', bone_names=ground_sensor_names)
+
+    def generate_softbody_rig(self):
+
+        # TODO: avoid usage of bpy.ops
+        bpy.ops.mesh.primitive_plane_add(size=2.0, location=(0, 0, 0))
+        softbody_object = bpy.context.active_object
+        softbody_object.name = 'softbody_sim'
+        softbody_object.parent = self.ob
+        print("PLANE CREATED")
+
+        sb_mod = softbody_object.modifiers.new("SoftBody", "SOFT_BODY")
+        sb_mod.settings.friction = 5
+        sb_mod.settings.mass = 1.2
+        sb_mod.settings.goal_default = 0.95
+        sb_mod.settings.goal_friction = 1.0
+        sb_mod.settings.goal_spring = 0.1
+        print("SB MODIFIER ADDED")
+
+        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Ft.L"
+        copyloc_const.influence = 1
+
+        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Ft.R"
+        copyloc_const.influence = 0.333333
+
+        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Bk.L"
+        copyloc_const.influence = 0.333333
+
+        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Bk.R"
+        copyloc_const.influence = 0.333333
+
+        print("COPYLOC CONST ADDED")
 
     def set_origin(self, scene):
         object_location = self.ob.location[:]

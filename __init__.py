@@ -40,8 +40,33 @@ if "bpy" in locals():
         importlib.reload(widgets)
 else:
     import bpy
-    from . import bake_operators
-    from . import car_rig
+    
+    #from . import bake_operators
+    #from . import car_rig
+    
+    '''
+    import importlib
+    import sys
+    
+    spec = importlib.util.spec_from_file_location("bake_operators", "C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics\\bake_operators.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module 
+    spec.loader.exec_module(module)
+    
+    spec = importlib.util.spec_from_file_location("car_rig", "C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics\\car_rig.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module 
+    spec.loader.exec_module(module)
+            
+    import bake_operators
+    import car_rig
+    '''
+    
+    import sys
+    sys.path
+    sys.path.append('C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics')
+    import bake_operators
+    import car_rig
 
 
 def enumerate_ground_sensors(bones):
