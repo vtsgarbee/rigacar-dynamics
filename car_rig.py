@@ -26,6 +26,7 @@ import mathutils
 import re
 from math import inf
 from rna_prop_ui import rna_idprop_ui_create
+import bmesh
 
 CUSTOM_SHAPE_LAYER = 13
 MCH_BONE_EXTENSION_LAYER = 14
@@ -477,6 +478,7 @@ class ArmatureGenerator(object):
                                name='suspension_rolling_factor',
                                value=.5,
                                description="Influence of the dampers over the roll of the body")
+        
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -497,11 +499,12 @@ class ArmatureGenerator(object):
 
             self.generate_bone_groups()
             dispatch_bones_to_armature_layers(self.ob)
+            self.generate_softbody_rig()
 
         finally:
             self.ob.location += location
 
-        self.generate_softbody_rig()
+
 
 
     def generate_animation_rig(self):
@@ -1173,14 +1176,48 @@ class ArmatureGenerator(object):
 
     def generate_softbody_rig(self):
 
-        # TODO: avoid usage of bpy.ops
-        bpy.ops.mesh.primitive_plane_add(size=2.0, location=(0, 0, 0))
-        softbody_object = bpy.context.active_object
-        softbody_object.name = 'softbody_sim'
-        softbody_object.parent = self.ob
-        print("PLANE CREATED")
+        # creation of a mesh with a single vertex and a vertex group
+        mesh = bpy.data.meshes.new("CAR-Physics")
+        sb_physics_obj = bpy.data.objects.new(mesh.name, mesh)
+        col = bpy.data.collections["Collection"]
+        col.objects.link(sb_physics_obj)
+        bpy.context.view_layer.objects.active = sb_physics_obj
 
-        sb_mod = softbody_object.modifiers.new("SoftBody", "SOFT_BODY")
+        verts = [(0, 0, 0)]
+        edges = []
+        faces = []
+        mesh.from_pydata(verts, edges, faces)
+
+        vx_group = bpy.context.active_object.vertex_groups.new(name='mass')
+        vx_indeces = [0]
+        vx_group.add(vx_indeces, 1.0, 'ADD')
+
+        sb_physics_obj.parent = self.ob
+
+        # creation of 4 location constraints to follow wheels
+        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Ft.L"
+        copyloc_const.influence = 1
+
+        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Ft.R"
+        copyloc_const.influence = 0.333333
+
+        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Bk.L"
+        copyloc_const.influence = 0.333333
+
+        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
+        copyloc_const.target = self.ob
+        copyloc_const.subtarget = "GroundSensor.Bk.R"
+        copyloc_const.influence = 0.333333
+        print("WHEELS COPYLOC CONST ADDED")
+
+        # softbody modifier for auto movement
+        sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
         sb_mod.settings.friction = 5
         sb_mod.settings.mass = 1.2
         sb_mod.settings.goal_default = 0.95
@@ -1188,27 +1225,33 @@ class ArmatureGenerator(object):
         sb_mod.settings.goal_spring = 0.1
         print("SB MODIFIER ADDED")
 
-        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Ft.L"
+        # connection of suspension ctrl
+        susp_ctrl = self.ob.pose.bones.get("Suspension")
+        copyloc_const = susp_ctrl.constraints.new("COPY_LOCATION")
+        copyloc_const.target = sb_physics_obj
+        copyloc_const.subtarget = "mass"
         copyloc_const.influence = 1
+        copyloc_const.use_x = True
+        copyloc_const.use_y = False
+        copyloc_const.use_z = False
+        copyloc_const.target_space = "CUSTOM"
+        copyloc_const.owner_space = "CUSTOM"
+        copyloc_const.space_object = self.ob
+        copyloc_const.space_subtarget = "SHP-Root"
 
-        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Ft.R"
-        copyloc_const.influence = 0.333333
+        copyloc_const = susp_ctrl.constraints.new("COPY_LOCATION")
+        copyloc_const.target = sb_physics_obj
+        copyloc_const.subtarget = "mass"
+        copyloc_const.influence = 0.25
+        copyloc_const.use_x = False
+        copyloc_const.use_y = True
+        copyloc_const.use_z = False
+        copyloc_const.target_space = "CUSTOM"
+        copyloc_const.owner_space = "CUSTOM"
+        copyloc_const.space_object = self.ob
+        copyloc_const.space_subtarget = "SHP-Root"
+        print("SUSPENSION COPYLOC CONST ADDED")
 
-        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Bk.L"
-        copyloc_const.influence = 0.333333
-
-        copyloc_const = softbody_object.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Bk.R"
-        copyloc_const.influence = 0.333333
-
-        print("COPYLOC CONST ADDED")
 
     def set_origin(self, scene):
         object_location = self.ob.location[:]
