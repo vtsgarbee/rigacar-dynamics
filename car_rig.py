@@ -485,15 +485,15 @@ class ArmatureGenerator(object):
                                description="Activate wheels rotation when moving the root bone along the Y axis")
         define_custom_property(self.ob,
                                name='suspension_factor',
-                               value=.5,
+                               value=0.0,
                                description="Influence of the dampers over the pitch of the body")
         define_custom_property(self.ob,
                                name='suspension_rolling_factor',
-                               value=.5,
+                               value=0.0,
                                description="Influence of the dampers over the roll of the body")
         define_custom_property(self.ob,
                                name='sb_weight',
-                               value=.5,
+                               value=.25,
                                description="The weight of the vehicle in the softbody simulation")
         define_custom_property(self.ob,
                                name='sb_stiffness',
@@ -510,10 +510,13 @@ class ArmatureGenerator(object):
 
         #DONE add parameters
         #DONE add button to bake and clear softbody cache
-        #TODO split in different panels
+        #DONE split in different panels
         #TODO automatic follow path + path picker exposed
         #TODO SW to Project by default
         #TODO Z constraint on suspension
+        #TODO batch rename softbody to physics
+        #TODO change from SHP-ROOT to ROOT
+        #TODO copy paste tool
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -543,8 +546,8 @@ class ArmatureGenerator(object):
 
 
     def generate_animation_rig(self):
-        amt = self.ob.data
 
+        amt = self.ob.data
         body = amt.edit_bones['DEF-Body']
         root = amt.edit_bones.new('Root')
         if self.dimension.has_back_wheels:
@@ -847,6 +850,10 @@ class ArmatureGenerator(object):
         root.custom_shape = get_widget('WGT-CarRig.Root')
         root.custom_shape_transform = pose.bones['SHP-Root']
         root.bone.show_wire = True
+        tmp_const = root.constraints.new('FOLLOW_PATH')
+        tmp_const.forward_axis = "TRACK_NEGATIVE_Y"
+        tmp_const.use_fixed_location = True
+        tmp_const.use_curve_follow = True
 
         for ground_sensor_axle_name in ('GroundSensor.Axle.Ft', 'GroundSensor.Axle.Bk'):
             groundsensor_axle = pose.bones.get(ground_sensor_axle_name)
@@ -985,7 +992,7 @@ class ArmatureGenerator(object):
     def generate_ground_projection_constraint(self, bone):
         cns = bone.constraints.new('SHRINKWRAP')
         cns.name = 'Ground projection'
-        cns.shrinkwrap_type = 'NEAREST_SURFACE'
+        cns.shrinkwrap_type = 'PROJECT'
         cns.project_axis_space = 'LOCAL'
         cns.project_axis = 'NEG_Z'
         cns.distance = abs(bone.head.z)

@@ -65,7 +65,11 @@ def enumerate_ground_sensors(bones):
             if bone.name.startswith('GroundSensor.Bk'):
                 yield bone
 
-
+def get_follow_path_constraint(bones):
+    for b in bones:
+        for c in b.constraints:
+            if c.type == "FOLLOW_PATH":
+                return c
 class RIGACAR_PT_mixin:
 
     def __init__(self):
@@ -83,11 +87,6 @@ class RIGACAR_PT_mixin:
     def display_generate_section(self, context):
         self.layout.operator(car_rig.POSE_OT_carAnimationRigGenerate.bl_idname, text='Generate')
 
-    def display_bake_section(self, context):
-        self.layout.operator(bake_operators.ANIM_OT_carSteeringBake.bl_idname)
-        self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
-        self.layout.operator(bake_operators.ANIM_OT_carClearSteeringWheelsRotation.bl_idname)
-
     def display_softbody_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["sb_weight"]', text="Mass")
@@ -97,12 +96,20 @@ class RIGACAR_PT_mixin:
         self.layout.operator(bake_operators.ANIM_OT_carBakeSoftbody.bl_idname)
         self.layout.operator(bake_operators.ANIM_OT_carClearSoftbody.bl_idname)
 
-
     def display_rig_props_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
         layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
         layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
+        self.layout.operator(bake_operators.ANIM_OT_carSteeringBake.bl_idname)
+        self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
+        self.layout.operator(bake_operators.ANIM_OT_carClearSteeringWheelsRotation.bl_idname)
+
+    def display_path_properties_section(self, context):
+
+        fp_const = get_follow_path_constraint(context.object.pose.bones)
+        self.layout.prop(fp_const, 'target', text='Path')
+
 
     def display_ground_sensors_section(self, context):
         for ground_sensor in enumerate_ground_sensors(context.object.pose.bones):
@@ -137,7 +144,6 @@ class RIGACAR_PT_rigProperties(bpy.types.Panel, RIGACAR_PT_mixin):
         if RIGACAR_PT_mixin.is_car_rig_generated(context):
             self.display_rig_props_section(context)
             self.layout.separator()
-            self.display_bake_section(context)
         else:
             self.display_generate_section(context)
 
@@ -174,20 +180,6 @@ class RIGACAR_PT_animationRigView(bpy.types.Panel, RIGACAR_PT_mixin):
         else:
             self.display_generate_section(context)
 
-
-class RIGACAR_PT_wheelsAnimationView(bpy.types.Panel, RIGACAR_PT_mixin):
-    bl_category = "Rigacar"
-    bl_label = "Wheels animation"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-    @classmethod
-    def poll(cls, context):
-        return RIGACAR_PT_mixin.is_car_rig_generated(context)
-
-    def draw(self, context):
-        self.display_bake_section(context)
-
 class RIGACAR_PT_softbodyView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
     bl_label = "Softbody"
@@ -200,6 +192,19 @@ class RIGACAR_PT_softbodyView(bpy.types.Panel, RIGACAR_PT_mixin):
 
     def draw(self, context):
         self.display_softbody_section(context)
+
+class RIGACAR_PT_animationProperties(bpy.types.Panel, RIGACAR_PT_mixin):
+    bl_category = "Rigacar"
+    bl_label = "Animation Properites"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return RIGACAR_PT_mixin.is_car_rig_generated(context)
+
+    def draw(self, context):
+        self.display_path_properties_section(context)
 
 
 class RIGACAR_PT_groundSensorsView(bpy.types.Panel, RIGACAR_PT_mixin):
@@ -222,12 +227,12 @@ def menu_entries(menu, context):
 
 
 classes = (
-  RIGACAR_PT_rigProperties,
-  RIGACAR_PT_softbodyView,
-  RIGACAR_PT_groundSensorsProperties,
-  RIGACAR_PT_animationRigView,
-  RIGACAR_PT_wheelsAnimationView,
-  RIGACAR_PT_groundSensorsView,
+    RIGACAR_PT_rigProperties,
+    RIGACAR_PT_softbodyView,
+    RIGACAR_PT_animationProperties,
+    RIGACAR_PT_groundSensorsProperties,
+    RIGACAR_PT_animationRigView,
+    RIGACAR_PT_groundSensorsView,
 )
 
 
