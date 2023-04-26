@@ -88,15 +88,21 @@ class RIGACAR_PT_mixin:
         self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
         self.layout.operator(bake_operators.ANIM_OT_carClearSteeringWheelsRotation.bl_idname)
 
+    def display_softbody_section(self, context):
+        layout = self.layout.column()
+        layout.prop(context.object, '["sb_weight"]', text="Mass")
+        layout.prop(context.object, '["sb_stiffness"]', text="Stiffness")
+        layout.prop(context.object, '["sb_pitch"]', text="Pitch factor")
+        layout.prop(context.object, '["sb_roll"]', text="Roll factor")
+        self.layout.operator(bake_operators.ANIM_OT_carBakeSoftbody.bl_idname)
+        self.layout.operator(bake_operators.ANIM_OT_carClearSoftbody.bl_idname)
+
+
     def display_rig_props_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
-        layout.prop(context.object, '["suspension_factor"]', text="Suspension pitch factor")
-        layout.prop(context.object, '["suspension_rolling_factor"]', text="Suspension roll factor")
-        layout.prop(context.object, '["sb_weight"]', text="Softbody sim weight")
-        layout.prop(context.object, '["sb_stiffness"]', text="Softbody sim stiffness")
-        layout.prop(context.object, '["sb_pitch"]', text="Softbody sim pitch factor")
-        layout.prop(context.object, '["sb_roll"]', text="Softbody sim roll factor")
+        layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
+        layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
 
     def display_ground_sensors_section(self, context):
         for ground_sensor in enumerate_ground_sensors(context.object.pose.bones):
@@ -154,7 +160,7 @@ class RIGACAR_PT_groundSensorsProperties(bpy.types.Panel, RIGACAR_PT_mixin):
 
 class RIGACAR_PT_animationRigView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
-    bl_label = "Animation Rig"
+    bl_label = "Wheels"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -182,6 +188,19 @@ class RIGACAR_PT_wheelsAnimationView(bpy.types.Panel, RIGACAR_PT_mixin):
     def draw(self, context):
         self.display_bake_section(context)
 
+class RIGACAR_PT_softbodyView(bpy.types.Panel, RIGACAR_PT_mixin):
+    bl_category = "Rigacar"
+    bl_label = "Softbody"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return RIGACAR_PT_mixin.is_car_rig_generated(context)
+
+    def draw(self, context):
+        self.display_softbody_section(context)
+
 
 class RIGACAR_PT_groundSensorsView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
@@ -204,6 +223,7 @@ def menu_entries(menu, context):
 
 classes = (
   RIGACAR_PT_rigProperties,
+  RIGACAR_PT_softbodyView,
   RIGACAR_PT_groundSensorsProperties,
   RIGACAR_PT_animationRigView,
   RIGACAR_PT_wheelsAnimationView,

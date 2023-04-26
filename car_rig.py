@@ -508,8 +508,8 @@ class ArmatureGenerator(object):
                                value=0.25,
                                description="The effect of softbody simulation on pitch")
 
-        #TODO add parameters
-        #TODO add button to bake and clear softbody cache
+        #DONE add parameters
+        #DONE add button to bake and clear softbody cache
         #TODO split in different panels
         #TODO automatic follow path + path picker exposed
         #TODO SW to Project by default
@@ -1261,7 +1261,7 @@ class ArmatureGenerator(object):
         create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_weight"]', "mass")
         create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
         print("SB MODIFIER ADDED")
-        
+
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")

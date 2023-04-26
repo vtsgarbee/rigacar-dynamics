@@ -306,7 +306,34 @@ class ANIM_OT_carWheelsRotationBake(bpy.types.Operator, BakingOperator):
             kf = fc_rot.keyframe_points.insert(f, distance)
             kf.interpolation = 'LINEAR'
             kf.type = 'JITTER'
-
+class ANIM_OT_carBakeSoftbody(bpy.types.Operator):
+    bl_idname = 'anim.car_bake_softbody'
+    bl_label = 'Bake softbody'
+    bl_description = 'Bake softbody animation'
+    bl_options = {'REGISTER', 'UNDO'}
+    def execute(self, context):
+        for s in bpy.data.scenes:
+            for o in bpy.data.objects:
+                #TODO: find a better method to identify the softbody source. custom attribute?
+                for m in o.modifiers:
+                    if m.type == "SOFT_BODY":
+                        with bpy.context.temp_override(scene=s, active_object=o, point_cache=m.point_cache):
+                            bpy.ops.ptcache.free_bake()
+                            bpy.ops.ptcache.bake(bake=True)
+        return {'FINISHED'}
+class ANIM_OT_carClearSoftbody(bpy.types.Operator):
+    bl_idname = 'anim.car_clear_softbody'
+    bl_label = 'Clear softbody'
+    bl_description = 'Clear softbody animation'
+    bl_options = {'REGISTER', 'UNDO'}
+    def execute(self, context):
+        for s in bpy.data.scenes:
+            for o in bpy.data.objects:
+                for m in o.modifiers:
+                    if m.type == "SOFT_BODY":
+                        with bpy.context.temp_override(scene=s, active_object=o, point_cache=m.point_cache):
+                            bpy.ops.ptcache.free_bake()
+        return {'FINISHED'}
 
 class ANIM_OT_carSteeringBake(bpy.types.Operator, BakingOperator):
     bl_idname = 'anim.car_steering_bake'
@@ -427,13 +454,15 @@ def register():
     bpy.utils.register_class(ANIM_OT_carWheelsRotationBake)
     bpy.utils.register_class(ANIM_OT_carSteeringBake)
     bpy.utils.register_class(ANIM_OT_carClearSteeringWheelsRotation)
-
+    bpy.utils.register_class(ANIM_OT_carBakeSoftbody)
+    bpy.utils.register_class(ANIM_OT_carClearSoftbody)
 
 def unregister():
     bpy.utils.unregister_class(ANIM_OT_carClearSteeringWheelsRotation)
     bpy.utils.unregister_class(ANIM_OT_carSteeringBake)
     bpy.utils.unregister_class(ANIM_OT_carWheelsRotationBake)
-
+    bpy.utils.unregister_class(ANIM_OT_carBakeSoftbody)
+    bpy.utils.unregister_class(ANIM_OT_carClearSoftbody)
 
 if __name__ == "__main__":
     register()
