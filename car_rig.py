@@ -59,6 +59,19 @@ def create_constraint_influence_driver(ob, cns, driver_data_path, base_influence
         fmod.poly_order = 1
         fmod.coefficients = (0, base_influence)
 
+def create_constraint_generic_driver(ob, cns, driver_data_path, property_name):
+    fcurve = cns.driver_add(property_name)
+    drv = fcurve.driver
+    drv.type = 'AVERAGE'
+    var = drv.variables.new()
+    var.name = property_name
+    var.type = 'SINGLE_PROP'
+
+    targ = var.targets[0]
+    targ.id_type = 'OBJECT'
+    targ.id = ob
+    targ.data_path = driver_data_path
+
 
 def create_rotation_euler_x_driver(ob, bone, driver_data_path):
     fcurve = bone.driver_add('rotation_euler', 0)
@@ -478,7 +491,29 @@ class ArmatureGenerator(object):
                                name='suspension_rolling_factor',
                                value=.5,
                                description="Influence of the dampers over the roll of the body")
-        
+        define_custom_property(self.ob,
+                               name='sb_weight',
+                               value=.5,
+                               description="The weight of the vehicle in the softbody simulation")
+        define_custom_property(self.ob,
+                               name='sb_stiffness',
+                               value=0.05,
+                               description="Stiffness of the softbody simulation")
+        define_custom_property(self.ob,
+                               name='sb_roll',
+                               value=1.0,
+                               description="The effect of softbody simulation on roll")
+        define_custom_property(self.ob,
+                               name='sb_pitch',
+                               value=0.25,
+                               description="The effect of softbody simulation on pitch")
+
+        #TODO add parameters
+        #TODO add button to bake and clear softbody cache
+        #TODO split in different panels
+        #TODO automatic follow path + path picker exposed
+        #TODO SW to Project by default
+        #TODO Z constraint on suspension
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -499,7 +534,7 @@ class ArmatureGenerator(object):
 
             self.generate_bone_groups()
             dispatch_bones_to_armature_layers(self.ob)
-            self.generate_softbody_rig()
+            self.generate_softbody()
 
         finally:
             self.ob.location += location
@@ -1174,7 +1209,7 @@ class ArmatureGenerator(object):
         ground_sensor_names += tuple("SHP-%s" % i for i in ground_sensor_names)
         create_bone_group(pose, 'GroundSensor', color_set='THEME02', bone_names=ground_sensor_names)
 
-    def generate_softbody_rig(self):
+    def generate_softbody(self):
 
         # creation of a mesh with a single vertex and a vertex group
         mesh = bpy.data.meshes.new("CAR-Physics")
@@ -1195,61 +1230,64 @@ class ArmatureGenerator(object):
         sb_physics_obj.parent = self.ob
 
         # creation of 4 location constraints to follow wheels
-        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Ft.L"
-        copyloc_const.influence = 1
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Ft.L"
+        tmp_constr.influence = 1
 
-        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Ft.R"
-        copyloc_const.influence = 0.333333
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Ft.R"
+        tmp_constr.influence = 0.333333
 
-        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Bk.L"
-        copyloc_const.influence = 0.333333
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Bk.L"
+        tmp_constr.influence = 0.333333
 
-        copyloc_const = sb_physics_obj.constraints.new("COPY_LOCATION")
-        copyloc_const.target = self.ob
-        copyloc_const.subtarget = "GroundSensor.Bk.R"
-        copyloc_const.influence = 0.333333
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Bk.R"
+        tmp_constr.influence = 0.333333
         print("WHEELS COPYLOC CONST ADDED")
 
         # softbody modifier for auto movement
         sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
         sb_mod.settings.friction = 5
-        sb_mod.settings.mass = 1.2
+        sb_mod.settings.mass = .5
         sb_mod.settings.goal_default = 0.95
-        sb_mod.settings.goal_friction = 1.0
-        sb_mod.settings.goal_spring = 0.1
+        sb_mod.settings.goal_spring = 0.05
+        sb_mod.settings.goal_friction = .5
+        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_weight"]', "mass")
+        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
         print("SB MODIFIER ADDED")
-
+        
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
-        copyloc_const = susp_ctrl.constraints.new("COPY_LOCATION")
-        copyloc_const.target = sb_physics_obj
-        copyloc_const.subtarget = "mass"
-        copyloc_const.influence = 1
-        copyloc_const.use_x = True
-        copyloc_const.use_y = False
-        copyloc_const.use_z = False
-        copyloc_const.target_space = "CUSTOM"
-        copyloc_const.owner_space = "CUSTOM"
-        copyloc_const.space_object = self.ob
-        copyloc_const.space_subtarget = "SHP-Root"
+        tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
+        tmp_constr.target = sb_physics_obj
+        tmp_constr.subtarget = "mass"
+        tmp_constr.use_x = True
+        tmp_constr.use_y = False
+        tmp_constr.use_z = False
+        tmp_constr.target_space = "CUSTOM"
+        tmp_constr.owner_space = "CUSTOM"
+        tmp_constr.space_object = self.ob
+        tmp_constr.space_subtarget = "SHP-Root"
+        create_constraint_influence_driver(self.ob, tmp_constr, '["sb_roll"]')
 
-        copyloc_const = susp_ctrl.constraints.new("COPY_LOCATION")
-        copyloc_const.target = sb_physics_obj
-        copyloc_const.subtarget = "mass"
-        copyloc_const.influence = 0.25
-        copyloc_const.use_x = False
-        copyloc_const.use_y = True
-        copyloc_const.use_z = False
-        copyloc_const.target_space = "CUSTOM"
-        copyloc_const.owner_space = "CUSTOM"
-        copyloc_const.space_object = self.ob
-        copyloc_const.space_subtarget = "SHP-Root"
+        tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
+        tmp_constr.target = sb_physics_obj
+        tmp_constr.subtarget = "mass"
+        tmp_constr.influence = 0.333
+        tmp_constr.use_x = False
+        tmp_constr.use_y = True
+        tmp_constr.use_z = False
+        tmp_constr.target_space = "CUSTOM"
+        tmp_constr.owner_space = "CUSTOM"
+        tmp_constr.space_object = self.ob
+        tmp_constr.space_subtarget = "SHP-Root"
+        create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
         print("SUSPENSION COPYLOC CONST ADDED")
 
 

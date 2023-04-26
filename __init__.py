@@ -44,24 +44,6 @@ else:
     #from . import bake_operators
     #from . import car_rig
     
-    '''
-    import importlib
-    import sys
-    
-    spec = importlib.util.spec_from_file_location("bake_operators", "C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics\\bake_operators.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module 
-    spec.loader.exec_module(module)
-    
-    spec = importlib.util.spec_from_file_location("car_rig", "C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics\\car_rig.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module 
-    spec.loader.exec_module(module)
-            
-    import bake_operators
-    import car_rig
-    '''
-    
     import sys
     sys.path
     sys.path.append('C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics')
@@ -109,8 +91,12 @@ class RIGACAR_PT_mixin:
     def display_rig_props_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
-        layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
-        layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
+        layout.prop(context.object, '["suspension_factor"]', text="Suspension pitch factor")
+        layout.prop(context.object, '["suspension_rolling_factor"]', text="Suspension roll factor")
+        layout.prop(context.object, '["sb_weight"]', text="Softbody sim weight")
+        layout.prop(context.object, '["sb_stiffness"]', text="Softbody sim stiffness")
+        layout.prop(context.object, '["sb_pitch"]', text="Softbody sim pitch factor")
+        layout.prop(context.object, '["sb_roll"]', text="Softbody sim roll factor")
 
     def display_ground_sensors_section(self, context):
         for ground_sensor in enumerate_ground_sensors(context.object.pose.bones):
