@@ -87,14 +87,14 @@ class RIGACAR_PT_mixin:
     def display_generate_section(self, context):
         self.layout.operator(car_rig.POSE_OT_carAnimationRigGenerate.bl_idname, text='Generate')
 
-    def display_softbody_section(self, context):
+    def display_physics_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["sb_weight"]', text="Mass")
         layout.prop(context.object, '["sb_stiffness"]', text="Stiffness")
         layout.prop(context.object, '["sb_pitch"]', text="Pitch factor")
         layout.prop(context.object, '["sb_roll"]', text="Roll factor")
-        self.layout.operator(bake_operators.ANIM_OT_carBakeSoftbody.bl_idname)
-        self.layout.operator(bake_operators.ANIM_OT_carClearSoftbody.bl_idname)
+        # self.layout.operator(bake_operators.ANIM_OT_carBakePhysics.bl_idname)
+        # self.layout.operator(bake_operators.ANIM_OT_carClearPhysics.bl_idname)
 
     def display_rig_props_section(self, context):
         layout = self.layout.column()
@@ -180,9 +180,9 @@ class RIGACAR_PT_animationRigView(bpy.types.Panel, RIGACAR_PT_mixin):
         else:
             self.display_generate_section(context)
 
-class RIGACAR_PT_softbodyView(bpy.types.Panel, RIGACAR_PT_mixin):
+class RIGACAR_PT_physicsView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
-    bl_label = "Softbody"
+    bl_label = "Physics"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -191,7 +191,7 @@ class RIGACAR_PT_softbodyView(bpy.types.Panel, RIGACAR_PT_mixin):
         return RIGACAR_PT_mixin.is_car_rig_generated(context)
 
     def draw(self, context):
-        self.display_softbody_section(context)
+        self.display_physics_section(context)
 
 class RIGACAR_PT_animationProperties(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
@@ -225,11 +225,11 @@ class RIGACAR_PT_groundSensorsView(bpy.types.Panel, RIGACAR_PT_mixin):
 def menu_entries(menu, context):
     menu.layout.operator(car_rig.OBJECT_OT_armatureCarDeformationRig.bl_idname, text="Car (deformation rig)", icon='AUTO')
 
+# RIGACAR_PT_animationProperties
 
 classes = (
     RIGACAR_PT_rigProperties,
-    RIGACAR_PT_softbodyView,
-    RIGACAR_PT_animationProperties,
+    RIGACAR_PT_physicsView,
     RIGACAR_PT_groundSensorsProperties,
     RIGACAR_PT_animationRigView,
     RIGACAR_PT_groundSensorsView,

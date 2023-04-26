@@ -306,7 +306,7 @@ class ANIM_OT_carWheelsRotationBake(bpy.types.Operator, BakingOperator):
             kf = fc_rot.keyframe_points.insert(f, distance)
             kf.interpolation = 'LINEAR'
             kf.type = 'JITTER'
-class ANIM_OT_carBakeSoftbody(bpy.types.Operator):
+class ANIM_OT_carBakePhysics(bpy.types.Operator):
     bl_idname = 'anim.car_bake_softbody'
     bl_label = 'Bake softbody'
     bl_description = 'Bake softbody animation'
@@ -321,7 +321,7 @@ class ANIM_OT_carBakeSoftbody(bpy.types.Operator):
                             bpy.ops.ptcache.free_bake()
                             bpy.ops.ptcache.bake(bake=True)
         return {'FINISHED'}
-class ANIM_OT_carClearSoftbody(bpy.types.Operator):
+class ANIM_OT_carClearPhysics(bpy.types.Operator):
     bl_idname = 'anim.car_clear_softbody'
     bl_label = 'Clear softbody'
     bl_description = 'Clear softbody animation'
@@ -454,15 +454,15 @@ def register():
     bpy.utils.register_class(ANIM_OT_carWheelsRotationBake)
     bpy.utils.register_class(ANIM_OT_carSteeringBake)
     bpy.utils.register_class(ANIM_OT_carClearSteeringWheelsRotation)
-    bpy.utils.register_class(ANIM_OT_carBakeSoftbody)
-    bpy.utils.register_class(ANIM_OT_carClearSoftbody)
+    bpy.utils.register_class(ANIM_OT_carBakePhysics)
+    bpy.utils.register_class(ANIM_OT_carClearPhysics)
 
 def unregister():
     bpy.utils.unregister_class(ANIM_OT_carClearSteeringWheelsRotation)
     bpy.utils.unregister_class(ANIM_OT_carSteeringBake)
     bpy.utils.unregister_class(ANIM_OT_carWheelsRotationBake)
-    bpy.utils.unregister_class(ANIM_OT_carBakeSoftbody)
-    bpy.utils.unregister_class(ANIM_OT_carClearSoftbody)
+    bpy.utils.unregister_class(ANIM_OT_carBakePhysics)
+    bpy.utils.unregister_class(ANIM_OT_carClearPhysics)
 
 if __name__ == "__main__":
     register()

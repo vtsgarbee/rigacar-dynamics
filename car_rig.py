@@ -494,29 +494,33 @@ class ArmatureGenerator(object):
         define_custom_property(self.ob,
                                name='sb_weight',
                                value=.25,
-                               description="The weight of the vehicle in the softbody simulation")
+                               description="The weight of the vehicle in the physics simulation")
         define_custom_property(self.ob,
                                name='sb_stiffness',
                                value=0.05,
-                               description="Stiffness of the softbody simulation")
+                               description="Stiffness of the physics simulation")
         define_custom_property(self.ob,
                                name='sb_roll',
                                value=1.0,
-                               description="The effect of softbody simulation on roll")
+                               description="The effect of physics simulation on roll")
         define_custom_property(self.ob,
                                name='sb_pitch',
                                value=0.25,
-                               description="The effect of softbody simulation on pitch")
+                               description="The effect of physics simulation on pitch")
 
         #DONE add parameters
         #DONE add button to bake and clear softbody cache
         #DONE split in different panels
-        #TODO automatic follow path + path picker exposed
-        #TODO SW to Project by default
+        #DONE automatic follow path
+        #DONE path picker exposed
+        #DONE SW to Project by default
         #TODO Z constraint on suspension
+        #TODO single bake button for wheels
         #TODO batch rename softbody to physics
-        #TODO change from SHP-ROOT to ROOT
+        #DONE change from SHP-ROOT to ROOT
         #TODO copy paste tool
+        #TODO autoname rig according to *CAR*
+        #TODO expose friction
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -537,7 +541,7 @@ class ArmatureGenerator(object):
 
             self.generate_bone_groups()
             dispatch_bones_to_armature_layers(self.ob)
-            self.generate_softbody()
+            self.generate_physics_rig()
 
         finally:
             self.ob.location += location
@@ -1216,12 +1220,12 @@ class ArmatureGenerator(object):
         ground_sensor_names += tuple("SHP-%s" % i for i in ground_sensor_names)
         create_bone_group(pose, 'GroundSensor', color_set='THEME02', bone_names=ground_sensor_names)
 
-    def generate_softbody(self):
+    def generate_physics_rig(self):
 
         # creation of a mesh with a single vertex and a vertex group
         mesh = bpy.data.meshes.new("CAR-Physics")
         sb_physics_obj = bpy.data.objects.new(mesh.name, mesh)
-        col = bpy.data.collections["Collection"]
+        col = bpy.context.collection
         col.objects.link(sb_physics_obj)
         bpy.context.view_layer.objects.active = sb_physics_obj
 
@@ -1280,7 +1284,7 @@ class ArmatureGenerator(object):
         tmp_constr.target_space = "CUSTOM"
         tmp_constr.owner_space = "CUSTOM"
         tmp_constr.space_object = self.ob
-        tmp_constr.space_subtarget = "SHP-Root"
+        tmp_constr.space_subtarget = "Root"
         create_constraint_influence_driver(self.ob, tmp_constr, '["sb_roll"]')
 
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
@@ -1293,7 +1297,7 @@ class ArmatureGenerator(object):
         tmp_constr.target_space = "CUSTOM"
         tmp_constr.owner_space = "CUSTOM"
         tmp_constr.space_object = self.ob
-        tmp_constr.space_subtarget = "SHP-Root"
+        tmp_constr.space_subtarget = "Root"
         create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
         print("SUSPENSION COPYLOC CONST ADDED")
 
