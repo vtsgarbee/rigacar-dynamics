@@ -109,8 +109,9 @@ class RIGACAR_PT_mixin:
         layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
         layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
         layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
-        self.layout.operator(bake_operators.ANIM_OT_carSteeringBake.bl_idname)
-        self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
+        # self.layout.operator(bake_operators.ANIM_OT_carSteeringBake.bl_idname)
+        # self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
+        self.layout.operator(bake_operators.ANIM_OT_carCompleteBake.bl_idname)
         self.layout.operator(bake_operators.ANIM_OT_carClearSteeringWheelsRotation.bl_idname)
 
     # def display_path_properties_section(self, context):
@@ -207,7 +208,7 @@ class RIGACAR_PT_physicsView(bpy.types.Panel, RIGACAR_PT_mixin):
 
 class RIGACAR_PT_utilitiesView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
-    bl_label = "Animation Utilities"
+    bl_label = "Utilities"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 

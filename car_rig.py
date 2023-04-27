@@ -519,14 +519,14 @@ class ArmatureGenerator(object):
         # REJECTED path picker exposed
         # DONE SW to Project by default
         # REJECTED Z constraint on suspension
-        # TODO single bake button for wheels
+        # DONE single bake button for wheels
         # DONE batch rename softbody to physics
         # DONE change from SHP-ROOT to ROOT
         # DONE copy paste tool
         # TODO autoname rig according to *CAR* - including physics obj
         # DONE expose friction
         # REJECTED split to a new rig - too much hassle
-        # TODO change constraint influence method to generic method
+        # REJECTED change constraint influence method to generic method
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
