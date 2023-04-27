@@ -97,6 +97,7 @@ class RIGACAR_PT_mixin:
     def display_physics_section(self, context):
         layout = self.layout.column()
         layout.prop(context.object, '["sb_mass"]', text="Mass")
+        layout.prop(context.object, '["sb_friction"]', text="Friction")
         layout.prop(context.object, '["sb_stiffness"]', text="Stiffness")
         layout.prop(context.object, '["sb_pitch"]', text="Pitch factor")
         layout.prop(context.object, '["sb_roll"]', text="Roll factor")

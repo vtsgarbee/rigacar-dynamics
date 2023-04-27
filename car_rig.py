@@ -496,6 +496,10 @@ class ArmatureGenerator(object):
                                value=.25,
                                description="The mass of the vehicle in the physics simulation")
         define_custom_property(self.ob,
+                               name='sb_friction',
+                               value=4.0,
+                               description="Friction of the physics simulation")
+        define_custom_property(self.ob,
                                name='sb_stiffness',
                                value=0.05,
                                description="Stiffness of the physics simulation")
@@ -518,10 +522,11 @@ class ArmatureGenerator(object):
         #TODO single bake button for wheels
         #DONE batch rename softbody to physics
         #DONE change from SHP-ROOT to ROOT
-        #TODO copy paste tool
-        #TODO autoname rig according to *CAR*
-        #TODO expose friction
+        #DONE copy paste tool
+        #TODO autoname rig according to *CAR* - including physics obj
+        #DONE expose friction
         #TODO split to a new rig
+        #TODO change constraint influence method to generic method
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -1264,13 +1269,11 @@ class ArmatureGenerator(object):
 
         # softbody modifier for auto movement
         sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
-        sb_mod.settings.friction = 5
-        sb_mod.settings.mass = .5
         sb_mod.settings.goal_default = 0.95
-        sb_mod.settings.goal_spring = 0.05
         sb_mod.settings.goal_friction = .5
         create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_mass"]', "mass")
         create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
+        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_friction"]', "friction")
 
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
