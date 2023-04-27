@@ -492,9 +492,9 @@ class ArmatureGenerator(object):
                                value=0.0,
                                description="Influence of the dampers over the roll of the body")
         define_custom_property(self.ob,
-                               name='sb_weight',
+                               name='sb_mass',
                                value=.25,
-                               description="The weight of the vehicle in the physics simulation")
+                               description="The mass of the vehicle in the physics simulation")
         define_custom_property(self.ob,
                                name='sb_stiffness',
                                value=0.05,
@@ -509,18 +509,19 @@ class ArmatureGenerator(object):
                                description="The effect of physics simulation on pitch")
 
         #DONE add parameters
-        #DONE add button to bake and clear softbody cache
+        #REJECTED add button to bake and clear softbody cache
         #DONE split in different panels
         #DONE automatic follow path
-        #DONE path picker exposed
+        #REJECTED path picker exposed
         #DONE SW to Project by default
-        #TODO Z constraint on suspension
+        #REJECTED Z constraint on suspension
         #TODO single bake button for wheels
-        #TODO batch rename softbody to physics
+        #DONE batch rename softbody to physics
         #DONE change from SHP-ROOT to ROOT
         #TODO copy paste tool
         #TODO autoname rig according to *CAR*
         #TODO expose friction
+        #TODO split to a new rig
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -1260,7 +1261,6 @@ class ArmatureGenerator(object):
         tmp_constr.target = self.ob
         tmp_constr.subtarget = "GroundSensor.Bk.R"
         tmp_constr.influence = 0.333333
-        print("WHEELS COPYLOC CONST ADDED")
 
         # softbody modifier for auto movement
         sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
@@ -1269,9 +1269,8 @@ class ArmatureGenerator(object):
         sb_mod.settings.goal_default = 0.95
         sb_mod.settings.goal_spring = 0.05
         sb_mod.settings.goal_friction = .5
-        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_weight"]', "mass")
+        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_mass"]', "mass")
         create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
-        print("SB MODIFIER ADDED")
 
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
@@ -1299,7 +1298,6 @@ class ArmatureGenerator(object):
         tmp_constr.space_object = self.ob
         tmp_constr.space_subtarget = "Root"
         create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
-        print("SUSPENSION COPYLOC CONST ADDED")
 
 
     def set_origin(self, scene):

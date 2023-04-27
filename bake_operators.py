@@ -306,6 +306,8 @@ class ANIM_OT_carWheelsRotationBake(bpy.types.Operator, BakingOperator):
             kf = fc_rot.keyframe_points.insert(f, distance)
             kf.interpolation = 'LINEAR'
             kf.type = 'JITTER'
+
+
 class ANIM_OT_carBakePhysics(bpy.types.Operator):
     bl_idname = 'anim.car_bake_softbody'
     bl_label = 'Bake softbody'

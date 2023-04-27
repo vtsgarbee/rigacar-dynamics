@@ -38,16 +38,21 @@ if "bpy" in locals():
         importlib.reload(car_rig)
     if "widgets" in locals():
         importlib.reload(widgets)
+    if "amimations_operators" in locals():
+        importlib.reload(utilities_operators)
 else:
     import bpy
     
     #from . import bake_operators
+    #from . import utilities_operators
     #from . import car_rig
+
     
     import sys
     sys.path
     sys.path.append('C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics')
     import bake_operators
+    import utilities_operators
     import car_rig
 
 
@@ -70,6 +75,8 @@ def get_follow_path_constraint(bones):
         for c in b.constraints:
             if c.type == "FOLLOW_PATH":
                 return c
+
+
 class RIGACAR_PT_mixin:
 
     def __init__(self):
@@ -89,7 +96,7 @@ class RIGACAR_PT_mixin:
 
     def display_physics_section(self, context):
         layout = self.layout.column()
-        layout.prop(context.object, '["sb_weight"]', text="Mass")
+        layout.prop(context.object, '["sb_mass"]', text="Mass")
         layout.prop(context.object, '["sb_stiffness"]', text="Stiffness")
         layout.prop(context.object, '["sb_pitch"]', text="Pitch factor")
         layout.prop(context.object, '["sb_roll"]', text="Roll factor")
@@ -105,10 +112,12 @@ class RIGACAR_PT_mixin:
         self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
         self.layout.operator(bake_operators.ANIM_OT_carClearSteeringWheelsRotation.bl_idname)
 
-    def display_path_properties_section(self, context):
+    # def display_path_properties_section(self, context):
+    #     fp_const = get_follow_path_constraint(context.object.pose.bones)
+    #     self.layout.prop(fp_const, 'target', text='Path')
 
-        fp_const = get_follow_path_constraint(context.object.pose.bones)
-        self.layout.prop(fp_const, 'target', text='Path')
+    def display_utilities_section(self, context):
+        self.layout.operator(utilities_operators.OP_CarTansferAnimation.bl_idname)
 
 
     def display_ground_sensors_section(self, context):
@@ -180,6 +189,7 @@ class RIGACAR_PT_animationRigView(bpy.types.Panel, RIGACAR_PT_mixin):
         else:
             self.display_generate_section(context)
 
+
 class RIGACAR_PT_physicsView(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
     bl_label = "Physics"
@@ -192,6 +202,21 @@ class RIGACAR_PT_physicsView(bpy.types.Panel, RIGACAR_PT_mixin):
 
     def draw(self, context):
         self.display_physics_section(context)
+
+
+class RIGACAR_PT_utilitiesView(bpy.types.Panel, RIGACAR_PT_mixin):
+    bl_category = "Rigacar"
+    bl_label = "Animation Utilities"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return RIGACAR_PT_mixin.is_car_rig_generated(context)
+
+    def draw(self, context):
+        self.display_utilities_section(context)
+
 
 class RIGACAR_PT_animationProperties(bpy.types.Panel, RIGACAR_PT_mixin):
     bl_category = "Rigacar"
@@ -233,22 +258,28 @@ classes = (
     RIGACAR_PT_groundSensorsProperties,
     RIGACAR_PT_animationRigView,
     RIGACAR_PT_groundSensorsView,
+    RIGACAR_PT_utilitiesView
 )
 
 
 def register():
     bpy.types.VIEW3D_MT_armature_add.append(menu_entries)
+
     for c in classes:
         bpy.utils.register_class(c)
+
     car_rig.register()
     bake_operators.register()
+    utilities_operators.register()
 
 
 def unregister():
     bake_operators.unregister()
     car_rig.unregister()
+
     for c in classes:
         bpy.utils.unregister_class(c)
+
     bpy.types.VIEW3D_MT_armature_add.remove(menu_entries)
 
 
