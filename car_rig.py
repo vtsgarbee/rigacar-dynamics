@@ -15,7 +15,6 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-import pprint
 
 # <pep8 compliant>
 
@@ -26,12 +25,12 @@ import mathutils
 import re
 from math import inf
 from rna_prop_ui import rna_idprop_ui_create
-import bmesh
 
 CUSTOM_SHAPE_LAYER = 13
 MCH_BONE_EXTENSION_LAYER = 14
 DEF_BONE_LAYER = 15
 MCH_BONE_LAYER = 31
+
 
 def deselect_edit_bones(ob):
     for b in ob.data.edit_bones:
@@ -58,6 +57,7 @@ def create_constraint_influence_driver(ob, cns, driver_data_path, base_influence
         fmod.mode = 'POLYNOMIAL'
         fmod.poly_order = 1
         fmod.coefficients = (0, base_influence)
+
 
 def create_constraint_generic_driver(ob, cns, driver_data_path, property_name):
     fcurve = cns.driver_add(property_name)
@@ -512,21 +512,21 @@ class ArmatureGenerator(object):
                                value=0.25,
                                description="The effect of physics simulation on pitch")
 
-        #DONE add parameters
-        #REJECTED add button to bake and clear softbody cache
-        #DONE split in different panels
-        #DONE automatic follow path
-        #REJECTED path picker exposed
-        #DONE SW to Project by default
-        #REJECTED Z constraint on suspension
-        #TODO single bake button for wheels
-        #DONE batch rename softbody to physics
-        #DONE change from SHP-ROOT to ROOT
-        #DONE copy paste tool
-        #TODO autoname rig according to *CAR* - including physics obj
-        #DONE expose friction
-        #TODO split to a new rig
-        #TODO change constraint influence method to generic method
+        # DONE add parameters
+        # REJECTED add button to bake and clear softbody cache
+        # DONE split in different panels
+        # DONE automatic follow path
+        # REJECTED path picker exposed
+        # DONE SW to Project by default
+        # REJECTED Z constraint on suspension
+        # TODO single bake button for wheels
+        # DONE batch rename softbody to physics
+        # DONE change from SHP-ROOT to ROOT
+        # DONE copy paste tool
+        # TODO autoname rig according to *CAR* - including physics obj
+        # DONE expose friction
+        # REJECTED split to a new rig - too much hassle
+        # TODO change constraint influence method to generic method
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -551,9 +551,6 @@ class ArmatureGenerator(object):
 
         finally:
             self.ob.location += location
-
-
-
 
     def generate_animation_rig(self):
 
@@ -818,7 +815,6 @@ class ArmatureGenerator(object):
 
     def generate_constraints_on_rig(self):
         pose = self.ob.pose
-        amt = self.ob.data
 
         for b in pose.bones:
             if b.name.startswith('DEF-') or b.name.startswith('MCH-') or b.name.startswith('SHP-'):
@@ -1317,9 +1313,9 @@ class ArmatureGenerator(object):
 
 
 class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
-    bl_idname = "object.armature_car_deformation_rig"
-    bl_label = "Add car deformation rig"
-    bl_description = "Creates the base rig for a car."
+    bl_idname = "object.armature_car_deformation_rig_v2"
+    bl_label = "Add car deformation rig (V2)"
+    bl_description = "Creates the base rig for a car, including physics"
     bl_options = {'REGISTER', 'UNDO'}
 
     body_pos_delta: bpy.props.FloatVectorProperty(name='Delta Location',
@@ -1521,7 +1517,7 @@ class POSE_OT_carAnimationRigGenerate(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     adjust_origin: bpy.props.BoolProperty(name='Move origin',
-                                          description='Set origin of the armature at the same location as the root bone',
+                                          description='Set origin of the armature at the same location as root bone',
                                           default=True)
 
     @classmethod
@@ -1595,5 +1591,5 @@ def unregister():
 
 if __name__ == "__main__":
 
-    #main
+    # main
     register()
