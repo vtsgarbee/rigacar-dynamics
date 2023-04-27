@@ -43,17 +43,17 @@ if "bpy" in locals():
 else:
     import bpy
     
-    #from . import bake_operators
-    #from . import utilities_operators
-    #from . import car_rig
+    from . import bake_operators
+    from . import utilities_operators
+    from . import car_rig
 
-    
-    import sys
-    sys.path
-    sys.path.append('C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics')
-    import bake_operators
-    import utilities_operators
-    import car_rig
+    #
+    # import sys
+    # sys.path
+    # sys.path.append('C:\\Users\\Ciuffo\\Desktop\\CurrentProjects\\rigacar-dynamics')
+    # import bake_operators
+    # import utilities_operators
+    # import car_rig
 
 
 def enumerate_ground_sensors(bones):

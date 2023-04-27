@@ -523,10 +523,10 @@ class ArmatureGenerator(object):
         # DONE batch rename softbody to physics
         # DONE change from SHP-ROOT to ROOT
         # DONE copy paste tool
-        # TODO autoname rig according to *CAR* - including physics obj
         # DONE expose friction
         # REJECTED split to a new rig - too much hassle
         # REJECTED change constraint influence method to generic method
+        # TODO autoname rig according to *CAR* - including physics obj
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
