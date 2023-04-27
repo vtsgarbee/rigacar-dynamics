@@ -1,1 +1,1 @@
-Some tests on rigacar.
+Some test on rigacar.

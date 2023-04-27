@@ -19,12 +19,12 @@
 # <pep8 compliant>
 
 bl_info = {
-    "name": "Rigacar (Generates Car Rig)",
-    "author": "David Gayerie",
-    "version": (7, 1),
+    "name": "Rigacar V2",
+    "author": "David Gayerie + FC",
+    "version": (8, 0),
     "blender": (2, 83, 0),
     "location": "View3D > Add > Armature",
-    "description": "Adds a deformation rig for vehicles, generates animation rig and bake wheels animation.",
+    "description": "Adds a deformation rig for vehicles. Automatically generates wheel, steering and dynamics animation.",
     "wiki_url": "http://digicreatures.net/articles/rigacar.html",
     "tracker_url": "https://github.com/digicreatures/rigacar/issues",
     "category": "Rigging"}
