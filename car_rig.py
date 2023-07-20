@@ -31,7 +31,6 @@ MCH_BONE_EXTENSION_LAYER = 14
 DEF_BONE_LAYER = 15
 MCH_BONE_LAYER = 31
 
-
 def deselect_edit_bones(ob):
     for b in ob.data.edit_bones:
         b.select = False
@@ -121,8 +120,8 @@ def get_widget(name):
     widget = bpy.data.objects.get(name)
     if widget is None:
 
-        # from . import widgets
-        import widgets
+        from . import widgets
+        # import widgets
 
         widgets.create()
         widget = bpy.data.objects.get(name)
@@ -491,26 +490,26 @@ class ArmatureGenerator(object):
                                name='suspension_rolling_factor',
                                value=0.0,
                                description="Influence of the dampers over the roll of the body")
-        define_custom_property(self.ob,
-                               name='sb_mass',
-                               value=.25,
-                               description="The mass of the vehicle in the physics simulation")
-        define_custom_property(self.ob,
-                               name='sb_friction',
-                               value=4.0,
-                               description="Friction of the physics simulation")
-        define_custom_property(self.ob,
-                               name='sb_stiffness',
-                               value=0.05,
-                               description="Stiffness of the physics simulation")
-        define_custom_property(self.ob,
-                               name='sb_roll',
-                               value=1.0,
-                               description="The effect of physics simulation on roll")
-        define_custom_property(self.ob,
-                               name='sb_pitch',
-                               value=0.25,
-                               description="The effect of physics simulation on pitch")
+        # define_custom_property(self.ob,
+        #                        name='sb_mass',
+        #                        value=.25,
+        #                        description="The mass of the vehicle in the physics simulation")
+        # define_custom_property(self.ob,
+        #                        name='sb_friction',
+        #                        value=4.0,
+        #                        description="Friction of the physics simulation")
+        # define_custom_property(self.ob,
+        #                        name='sb_stiffness',
+        #                        value=0.05,
+        #                        description="Stiffness of the physics simulation")
+        # define_custom_property(self.ob,
+        #                        name='sb_roll',
+        #                        value=1.0,
+        #                        description="The effect of physics simulation on roll")
+        # define_custom_property(self.ob,
+        #                        name='sb_pitch',
+        #                        value=0.25,
+        #                        description="The effect of physics simulation on pitch")
 
         # DONE add parameters
         # REJECTED add button to bake and clear softbody cache
@@ -526,7 +525,17 @@ class ArmatureGenerator(object):
         # DONE expose friction
         # REJECTED split to a new rig - too much hassle
         # REJECTED change constraint influence method to generic method
-        # TODO autoname rig according to *CAR* - including physics obj
+        # DONE autoname rig according to *CAR* - including physics obj
+        # DONE better name search + lower()
+        # TODO NLA strip switcher
+        # TODO refresh drivers in anim transfer
+        # TODO convert from bone-based to object based follow path
+        # DONE physics cache end frame to 1000+
+        # TODO Z constraint on suspension - but place Physics on suspension position
+        # DONE unlink variables from UI? -- kinda useless
+        # TODO add proxy by default
+        # TODO implement error handling on _check_selection
+        # TODO car body center should always be in the center of wheels..no?
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -1224,23 +1233,10 @@ class ArmatureGenerator(object):
 
     def generate_physics_rig(self):
 
-        # creation of a mesh with a single vertex and a vertex group
-        mesh = bpy.data.meshes.new("CAR-Physics")
-        sb_physics_obj = bpy.data.objects.new(mesh.name, mesh)
-        col = bpy.context.collection
-        col.objects.link(sb_physics_obj)
-        bpy.context.view_layer.objects.active = sb_physics_obj
-
-        verts = [(0, 0, 0)]
-        edges = []
-        faces = []
-        mesh.from_pydata(verts, edges, faces)
-
-        vx_group = bpy.context.active_object.vertex_groups.new(name='mass')
-        vx_indeces = [0]
-        vx_group.add(vx_indeces, 1.0, 'ADD')
-
-        sb_physics_obj.parent = self.ob
+        for c in self.ob.children:
+            for m in c.modifiers:
+                if m.type == "SOFT_BODY":
+                    sb_physics_obj = c
 
         # creation of 4 location constraints to follow wheels
         tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
@@ -1263,19 +1259,12 @@ class ArmatureGenerator(object):
         tmp_constr.subtarget = "GroundSensor.Bk.R"
         tmp_constr.influence = 0.333333
 
-        # softbody modifier for auto movement
-        sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
-        sb_mod.settings.goal_default = 0.95
-        sb_mod.settings.goal_friction = .5
-        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_mass"]', "mass")
-        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
-        create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_friction"]', "friction")
-
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
         tmp_constr.target = sb_physics_obj
         tmp_constr.subtarget = "mass"
+        tmp_constr.influence = 1
         tmp_constr.use_x = True
         tmp_constr.use_y = False
         tmp_constr.use_z = False
@@ -1283,12 +1272,12 @@ class ArmatureGenerator(object):
         tmp_constr.owner_space = "CUSTOM"
         tmp_constr.space_object = self.ob
         tmp_constr.space_subtarget = "Root"
-        create_constraint_influence_driver(self.ob, tmp_constr, '["sb_roll"]')
+        # create_constraint_influence_driver(self.ob, tmp_constr, '["sb_roll"]')
 
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
         tmp_constr.target = sb_physics_obj
         tmp_constr.subtarget = "mass"
-        tmp_constr.influence = 0.333
+        tmp_constr.influence = 0.25
         tmp_constr.use_x = False
         tmp_constr.use_y = True
         tmp_constr.use_z = False
@@ -1296,7 +1285,7 @@ class ArmatureGenerator(object):
         tmp_constr.owner_space = "CUSTOM"
         tmp_constr.space_object = self.ob
         tmp_constr.space_subtarget = "Root"
-        create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
+        # create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
 
 
     def set_origin(self, scene):
@@ -1399,52 +1388,149 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         }
         self.target_objects_name = {}
 
-        has_body_target = self._find_target_object(context, 'Body')
+        # find body and extract prefix
+        res = self._find_generic_obj(context, 'Body')
 
-        nb_wheels_ft_l = self._find_target_object_for_wheels(context, 'Wheel.Ft.L')
-        nb_wheels_ft_r = self._find_target_object_for_wheels(context, 'Wheel.Ft.R')
-        nb_wheels_bk_l = self._find_target_object_for_wheels(context, 'Wheel.Bk.L')
-        nb_wheels_bk_r = self._find_target_object_for_wheels(context, 'Wheel.Bk.R')
+        if res == False:
+            print("no body found")
+            return self.execute(context)
 
-        nb_wheel_brakes_ft_l = self._find_target_object_for_wheels(context, 'WheelBrake.Ft.L')
-        nb_wheel_brakes_ft_r = self._find_target_object_for_wheels(context, 'WheelBrake.Ft.R')
-        nb_wheel_brakes_bk_l = self._find_target_object_for_wheels(context, 'WheelBrake.Bk.L')
-        nb_wheel_brakes_bk_r = self._find_target_object_for_wheels(context, 'WheelBrake.Bk.R')
+        self._find_generic_obj(context, 'Wheel.Ft.L')
+        self._find_generic_obj(context, 'Wheel.Ft.R')
+        self._find_generic_obj(context, 'Wheel.Bk.L')
+        self._find_generic_obj(context, 'Wheel.Bk.R')
 
-        self.nb_front_wheels_pairs = max(nb_wheels_ft_l, nb_wheels_ft_r)
-        self.nb_back_wheels_pairs = max(nb_wheels_bk_l, nb_wheels_bk_r)
-        self.nb_front_wheel_brakes_pairs = max(nb_wheel_brakes_ft_l, nb_wheel_brakes_ft_r)
-        self.nb_back_wheel_brakes_pairs = max(nb_wheel_brakes_bk_l, nb_wheel_brakes_bk_r)
+        self._find_generic_obj(context, 'WheelBrake.Ft.L')
+        self._find_generic_obj(context, 'WheelBrake.Ft.R')
+        self._find_generic_obj(context, 'WheelBrake.Bk.L')
+        self._find_generic_obj(context, 'WheelBrake.Bk.R')
 
-        # if no target object has been found for body, we assume it may have no
-        # target object for front and back wheels either.
-        if not has_body_target:
-            self.nb_front_wheels_pairs = max(1, self.nb_front_wheels_pairs)
-            self.nb_back_wheels_pairs = max(1, self.nb_back_wheels_pairs)
+        # TODO: this is needed for multiple rear/front wheels. cool!
+        # self.nb_front_wheels_pairs = max(nb_wheels_ft_l, nb_wheels_ft_r)
+        # self.nb_back_wheels_pairs = max(nb_wheels_bk_l, nb_wheels_bk_r)
+        # self.nb_front_wheel_brakes_pairs = max(nb_wheel_brakes_ft_l, nb_wheel_brakes_ft_r)
+        # self.nb_back_wheel_brakes_pairs = max(nb_wheel_brakes_bk_l, nb_wheel_brakes_bk_r)
+
+        # enforcing 2 axles
+        self.nb_front_wheels_pairs = 1
+        self.nb_back_wheels_pairs = 1
+        self.nb_front_wheel_brakes_pairs = 1
+        self.nb_back_wheel_brakes_pairs = 1
+
+        # ORIGINAL CODE
+        # has_body_target = self._find_target_object(context, 'Body')
+        #
+        # nb_wheels_ft_l = self._find_target_object_for_wheels(context, 'Wheel.Ft.L')
+        # nb_wheels_ft_r = self._find_target_object_for_wheels(context, 'Wheel.Ft.R')
+        # nb_wheels_bk_l = self._find_target_object_for_wheels(context, 'Wheel.Bk.L')
+        # nb_wheels_bk_r = self._find_target_object_for_wheels(context, 'Wheel.Bk.R')
+        #
+        # nb_wheel_brakes_ft_l = self._find_target_object_for_wheels(context, 'WheelBrake.Ft.L')
+        # nb_wheel_brakes_ft_r = self._find_target_object_for_wheels(context, 'WheelBrake.Ft.R')
+        # nb_wheel_brakes_bk_l = self._find_target_object_for_wheels(context, 'WheelBrake.Bk.L')
+        # nb_wheel_brakes_bk_r = self._find_target_object_for_wheels(context, 'WheelBrake.Bk.R')
+        #
+        # self.nb_front_wheels_pairs = max(nb_wheels_ft_l, nb_wheels_ft_r)
+        # self.nb_back_wheels_pairs = max(nb_wheels_bk_l, nb_wheels_bk_r)
+        # self.nb_front_wheel_brakes_pairs = max(nb_wheel_brakes_ft_l, nb_wheel_brakes_ft_r)
+        # self.nb_back_wheel_brakes_pairs = max(nb_wheel_brakes_bk_l, nb_wheel_brakes_bk_r)
 
         return self.execute(context)
 
-    def _find_target_object_for_wheels(self, context, suffix_name):
-        for count, name in enumerate(name_range(suffix_name)):
-            if not self._find_target_object(context, name):
-                return count
+    def _check_selection(self, context):
 
-    def _find_target_object(self, context, name):
-        escaped_name = re.escape(name).replace(r'\.', r'[\.-_ ]')
-        pattern = re.compile(f"^.*{escaped_name}$", re.IGNORECASE)
+        body = False
+        prefix = "NONE"
+
+        wheels = {
+            "Wheel.Ft.L": False,
+            "Wheel.Ft.R": False,
+            "Wheel.Bk.L": False,
+            "Wheel.Bk.R": False
+        }
+
+        wheelbrakes = {
+            "WheelBrake.Ft.L": False,
+            "WheelBrake.Ft.R": False,
+            "WheelBrake.Bk.L": False,
+            "WheelBrake.Bk.R": False
+        }
+
         for obj in context.selected_objects:
-            if pattern.match(obj.name):
-                self.target_objects_name[name] = obj.name
-                self.bones_position[name] = obj.location.copy()
+
+            name_low = obj.name.lower()
+
+            if "body" in name_low:
+                body = True
+
+                chunks = name_low.split("body")
+                len_prefix = len(chunks[0])
+                prefix = obj.name[0:len_prefix]  # same length but from original name
+                prefix = "".join(filter(str.isalnum, prefix))  # cleanup (alphanumeric only)
+
+        for key in wheels:
+
+            key_low = key.lower()
+
+            for obj in context.selected_objects:
+                if key_low in obj.name.lower():
+                    wheels[key] = True
+
+        for key in wheelbrakes:
+
+            key_low = key.lower()
+
+            for obj in context.selected_objects:
+                if key_low in obj.name.lower():
+                    wheels[key] = True
+
+        print(f"body, passed: {body}")
+
+        for key in wheels:
+            print(f"{key}, passed: {wheels[key]}")
+
+        for key in wheelbrakes:
+            print(f"{key}, passed: {wheelbrakes[key]}")
+
+        return True, prefix
+
+    def _find_generic_obj(self, context, key):
+
+        key_low = key.lower()
+
+        for obj in context.selected_objects:
+
+            name_low = obj.name.lower()
+
+            if key_low in name_low:
+                self.target_objects_name[key] = obj.name
+                self.bones_position[key] = obj.location.copy()
                 return True
+
         return False
+
+    # def _find_target_object_for_wheels(self, context, suffix_name):
+    #     for count, name in enumerate(name_range(suffix_name)):
+    #         if not self._find_target_object(context, name):
+    #             return count
+    #
+    # def _find_target_object(self, context, name):
+    #     escaped_name = re.escape(name).replace(r'\.', r'[\.-_ ]')
+    #     pattern = re.compile(f"^.*{escaped_name}$", re.IGNORECASE)
+    #     for obj in context.selected_objects:
+    #         if pattern.match(obj.name):
+    #             self.target_objects_name[name] = obj.name
+    #             self.bones_position[name] = obj.location.copy()
+    #             return True
+    #     return False
 
     def execute(self, context):
         """Creates the meta rig with basic bones"""
         amt = bpy.data.armatures.new('Car Rig Data')
         amt['Car Rig'] = False
 
-        rig = bpy_extras.object_utils.object_data_add(context, amt, name='Car Rig')
+        res, prefix = self._check_selection(context)
+        rig = bpy_extras.object_utils.object_data_add(context, amt, name=f'{prefix}-car-rig')
 
         # TODO: cannot edit new object added to a hidden collection
         # Could be a better fix (steal code from other addons).
@@ -1473,6 +1559,36 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         deselect_edit_bones(rig)
 
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        # creation of a mesh with a single vertex and a vertex group
+        mesh = bpy.data.meshes.new(prefix + "-Physics")
+        sb_physics_obj = bpy.data.objects.new(mesh.name, mesh)
+        col = bpy.context.collection
+        col.objects.link(sb_physics_obj)
+        bpy.context.view_layer.objects.active = sb_physics_obj
+
+        # softbody modifier for auto movement
+        sb_mod = sb_physics_obj.modifiers.new("Softbody", "SOFT_BODY")
+        sb_mod.settings.goal_default = 0.95
+        sb_mod.settings.goal_friction = 4
+        sb_mod.settings.mass = 0.25
+        sb_mod.settings.goal_spring = 0.05
+        sb_mod.point_cache.frame_end = 2000
+
+        # create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_mass"]', "")
+        # create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_stiffness"]', "goal_spring")
+        # create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_friction"]', "friction")
+
+        verts = [(0, 0, 0)]
+        edges = []
+        faces = []
+        mesh.from_pydata(verts, edges, faces)
+
+        vx_group = bpy.context.active_object.vertex_groups.new(name='mass')
+        vx_indeces = [0]
+        vx_group.add(vx_indeces, 1.0, 'ADD')
+
+        sb_physics_obj.parent = rig
 
         return {'FINISHED'}
 
