@@ -86,6 +86,23 @@ def create_rotation_euler_x_driver(ob, bone, driver_data_path):
     targ.id = ob
     targ.data_path = driver_data_path
 
+def create_rotation_euler_y_driver(ob, bone, driver_data_path, flip = False):
+    fcurve = bone.driver_add('rotation_euler', 1)
+    drv = fcurve.driver
+    drv.type = 'SCRIPTED'
+    var = drv.variables.new()
+    var.name = 'rotationAngle'
+    var.type = 'SINGLE_PROP'
+
+    if flip:
+        drv.expression = "-rotationAngle * 0.01745329252"
+    else:
+        drv.expression = "rotationAngle * 0.01745329252"
+
+    targ = var.targets[0]
+    targ.id_type = 'OBJECT'
+    targ.id = ob
+    targ.data_path = driver_data_path
 
 def create_translation_x_driver(ob, bone, driver_data_path):
     fcurve = bone.driver_add('location', 0)
@@ -491,6 +508,14 @@ class ArmatureGenerator(object):
                                name='suspension_rolling_factor',
                                value=0.0,
                                description="Influence of the dampers over the roll of the body")
+        define_custom_property(self.ob,
+                               name='camber',
+                               value=0.0,
+                               description="Camber angle")
+        define_custom_property(self.ob,
+                               name='wheel_offset',
+                               value=(0.0, 0.0, 0.0),
+                               description="Wheel offset")
         # define_custom_property(self.ob,
         #                        name='sb_mass',
         #                        value=.25,
@@ -538,8 +563,9 @@ class ArmatureGenerator(object):
         # TODO implement error handling on _check_selection
         # DONE car body center should always be in the center of wheels..no?
         # TODO prepurge to avoid issues while renaming?
-        # TODO camber
+        # TODO camber (WIP)
         # TODO wheels offset
+        # TODO better reset position for brakes and body (or new approach altogether)
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -1075,6 +1101,7 @@ class ArmatureGenerator(object):
             cns.track_axis = 'TRACK_Y'
 
     def generate_constraints_on_wheel_bones(self, name_suffix):
+
         pose = self.ob.pose
 
         def_wheel = pose.bones.get(name_suffix.name('DEF-Wheel'))
@@ -1086,6 +1113,7 @@ class ArmatureGenerator(object):
         cns.subtarget = name_suffix.name('MCH-Wheel')
 
         def_wheel_brake = pose.bones.get(name_suffix.name('DEF-WheelBrake'))
+
         if def_wheel_brake is not None:
             cns = def_wheel_brake.constraints.new('COPY_TRANSFORMS')
             cns.target = self.ob
@@ -1139,8 +1167,25 @@ class ArmatureGenerator(object):
         wheel.bone.show_wire = True
 
         wheel_brake = pose.bones.get(name_suffix.name('WheelBrake'))
-        if wheel_brake:
-            generate_constraint_on_wheel_brake_bone(wheel_brake, wheel)
+
+        print("OCIO BRAKES 1 " + str(wheel_brake) + " " + str(name_suffix.name('WheelBrake')))
+
+        # TODO: re enable these constrainst? they look useless
+        #if wheel_brake:
+
+            #generate_constraint_on_wheel_brake_bone(wheel_brake, wheel)
+
+        mch_brake = pose.bones[name_suffix.name('MCH-WheelBrake')]
+
+        if mch_brake is not None:
+            mch_brake.rotation_mode = "XYZ"
+
+            print("OOOK" + str(mch_brake))
+
+            if name_suffix.is_left:
+                create_rotation_euler_y_driver(self.ob, mch_brake, '["camber"]', True)
+            else:
+                create_rotation_euler_y_driver(self.ob, mch_brake, '["camber"]', False)
 
         mch_wheel = pose.bones[name_suffix.name('MCH-Wheel')]
         mch_wheel.rotation_mode = "XYZ"
@@ -1187,7 +1232,15 @@ class ArmatureGenerator(object):
         mch_wheel_rotation = pose.bones[name_suffix.name('MCH-Wheel.rotation')]
         mch_wheel_rotation.rotation_mode = "XYZ"
         self.generate_childof_constraint(mch_wheel_rotation, ground_sensor)
+
         create_rotation_euler_x_driver(self.ob, mch_wheel_rotation, '["%s"]' % name_suffix.name('Wheel.rotation'))
+
+        if name_suffix.is_left:
+            create_rotation_euler_y_driver(self.ob, mch_wheel, '["camber"]', True)
+        else:
+            create_rotation_euler_y_driver(self.ob, mch_wheel, '["camber"]', False)
+
+        # create_constraint_generic_driver(self.ob, sb_mod.settings, '["sb_friction"]', "friction")
 
     def generate_constraints_on_wheel_damper(self, wheel_dimension):
         pose = self.ob.pose
@@ -1311,9 +1364,6 @@ class ArmatureGenerator(object):
 
         sb_physics_obj.location = [0, 0, 0]
         susp_ctrl_w_loc = self.ob.location + susp_ctrl.head
-
-        print(f"OCIO {self.ob.location} {susp_ctrl.location}")
-
         sb_physics_obj.location = [0, 0, susp_ctrl_w_loc[2]]
 
 
@@ -1457,16 +1507,51 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         self.nb_front_wheel_brakes_pairs = 1
         self.nb_back_wheel_brakes_pairs = 1
 
+        def move_origin(target_obj, location):
+            mat = Matrix.Translation(location - target_obj.location)
+            target_obj.location = location
+            target_obj.data.transform(mat.inverted())
+            target_obj.data.update()
+
+        # TODO this body reset sounds clever but move stuff around. need to rethink approach.
         # tweak body origin so that it's centered on wheels
-        body_obj =  self.target_objects["Body"]
+        # obj = self.target_objects["Body"]
+        # children = []
+        #
+        # for c in children:
+        #     children.append(c)
+        #     c.parent = None
+        #
+        # target_position = (self.target_objects["Wheel.Ft.L"].location + self.target_objects["Wheel.Ft.R"].location + \
+        #                    self.target_objects["Wheel.Bk.L"].location + self.target_objects["Wheel.Bk.R"].location)/4
+        #
+        # move_origin(obj, target_position)
+        # self.bones_position["Body"] = obj.location.copy()
+        #
+        # for c in children:
+        #     c.parent = obj
 
-        wheel_center = (self.target_objects["Wheel.Ft.L"].location + self.target_objects["Wheel.Ft.R"].location + \
-                           self.target_objects["Wheel.Bk.L"].location + self.target_objects["Wheel.Bk.R"].location)/4
+        # tweak brakes origin so that they are centered on wheels (needed for cambering)
+        # TODO this creates issues with instances - they move around. You need to add a camber bone, just admit it.
+        obj = self.target_objects["WheelBrake.Ft.L"]
+        target_position = self.target_objects["Wheel.Ft.L"].location.copy()
+        move_origin(obj, target_position)
+        self.bones_position["WheelBrake.Ft.L"] = obj.location.copy()
 
-        mat = Matrix.Translation(wheel_center - body_obj.location)
-        body_obj.location = wheel_center
-        body_obj.data.transform(mat.inverted())
-        body_obj.data.update()
+        obj = self.target_objects["WheelBrake.Ft.R"]
+        target_position = self.target_objects["Wheel.Ft.R"].location.copy()
+        move_origin(obj, target_position)
+        self.bones_position["WheelBrake.Ft.R"] = obj.location.copy()
+
+        obj = self.target_objects["WheelBrake.Bk.L"]
+        target_position = self.target_objects["Wheel.Bk.L"].location.copy()
+        move_origin(obj, target_position)
+        self.bones_position["WheelBrake.Bk.L"] = obj.location.copy()
+
+        obj = self.target_objects["WheelBrake.Bk.R"]
+        target_position = self.target_objects["Wheel.Bk.R"].location.copy()
+        move_origin(obj, target_position)
+        self.bones_position["WheelBrake.Bk.R"] = obj.location.copy()
 
         # ORIGINAL CODE
         # has_body_target = self._find_target_object(context, 'Body')

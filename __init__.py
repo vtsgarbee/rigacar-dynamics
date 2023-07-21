@@ -106,9 +106,11 @@ class RIGACAR_PT_mixin:
 
     def display_rig_props_section(self, context):
         layout = self.layout.column()
-        layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
-        layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
-        layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
+        # layout.prop(context.object, '["wheels_on_y_axis"]', text="Wheels on Y axis")
+        # layout.prop(context.object, '["suspension_factor"]', text="Pitch factor")
+        # layout.prop(context.object, '["suspension_rolling_factor"]', text="Roll factor")
+        layout.prop(context.object, '["camber"]', text="Camber")
+        layout.prop(context.object, '["wheel_offset"]', text="Wheel Offset")
         self.layout.operator(bake_operators.ANIM_OT_carSteeringBake.bl_idname)
         self.layout.operator(bake_operators.ANIM_OT_carWheelsRotationBake.bl_idname)
         # self.layout.operator(bake_operators.ANIM_OT_carCompleteBake.bl_idname)
