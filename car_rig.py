@@ -25,6 +25,7 @@ import mathutils
 import re
 from math import inf
 from rna_prop_ui import rna_idprop_ui_create
+from mathutils import Matrix, Vector
 
 CUSTOM_SHAPE_LAYER = 13
 MCH_BONE_EXTENSION_LAYER = 14
@@ -527,15 +528,18 @@ class ArmatureGenerator(object):
         # REJECTED change constraint influence method to generic method
         # DONE autoname rig according to *CAR* - including physics obj
         # DONE better name search + lower()
-        # TODO NLA strip switcher
-        # TODO refresh drivers in anim transfer
+        # REJECTED NLA strip switcher
+        # REJECTED refresh drivers in anim transfer
         # TODO convert from bone-based to object based follow path
         # DONE physics cache end frame to 1000+
-        # TODO Z constraint on suspension - but place Physics on suspension position
+        # DONE Z constraint on suspension - but place Physics on suspension position
         # DONE unlink variables from UI? -- kinda useless
-        # TODO add proxy by default
+        # DONE add proxy by default
         # TODO implement error handling on _check_selection
-        # TODO car body center should always be in the center of wheels..no?
+        # DONE car body center should always be in the center of wheels..no?
+        # TODO prepurge to avoid issues while renaming?
+        # TODO camber
+        # TODO wheels offset
 
         location = self.ob.location.copy()
         self.ob.location = (0, 0, 0)
@@ -557,6 +561,7 @@ class ArmatureGenerator(object):
             self.generate_bone_groups()
             dispatch_bones_to_armature_layers(self.ob)
             self.generate_physics_rig()
+            self.position_proxy()
 
         finally:
             self.ob.location += location
@@ -1312,6 +1317,16 @@ class ArmatureGenerator(object):
         sb_physics_obj.location = [0, 0, susp_ctrl_w_loc[2]]
 
 
+    def position_proxy(self):
+
+        for c in self.ob.children:
+            if "proxy" in c.name.lower():
+                proxy_obj = c
+
+        def_body_location = self.ob.pose.bones.get("DEF-Body").head
+        proxy_obj.location = def_body_location
+
+
     def set_origin(self, scene):
         object_location = self.ob.location[:]
         root = self.ob.data.bones.get('Root')
@@ -1410,7 +1425,8 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
             'WheelBrake.Bk.L': mathutils.Vector((0.8,  2,  .5)),
             'WheelBrake.Bk.R': mathutils.Vector((-.8,  2,  .5))
         }
-        self.target_objects_name = {}
+
+        self.target_objects = {}
 
         # find body and extract prefix
         res = self._find_generic_obj(context, 'Body')
@@ -1440,6 +1456,17 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         self.nb_back_wheels_pairs = 1
         self.nb_front_wheel_brakes_pairs = 1
         self.nb_back_wheel_brakes_pairs = 1
+
+        # tweak body origin so that it's centered on wheels
+        body_obj =  self.target_objects["Body"]
+
+        wheel_center = (self.target_objects["Wheel.Ft.L"].location + self.target_objects["Wheel.Ft.R"].location + \
+                           self.target_objects["Wheel.Bk.L"].location + self.target_objects["Wheel.Bk.R"].location)/4
+
+        mat = Matrix.Translation(wheel_center - body_obj.location)
+        body_obj.location = wheel_center
+        body_obj.data.transform(mat.inverted())
+        body_obj.data.update()
 
         # ORIGINAL CODE
         # has_body_target = self._find_target_object(context, 'Body')
@@ -1527,7 +1554,7 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
             name_low = obj.name.lower()
 
             if key_low in name_low:
-                self.target_objects_name[key] = obj.name
+                self.target_objects[key] = obj
                 self.bones_position[key] = obj.location.copy()
                 return True
 
@@ -1585,8 +1612,8 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # creation of a mesh with a single vertex and a vertex group
-        mesh = bpy.data.meshes.new(prefix + "-Physics")
-        sb_physics_obj = bpy.data.objects.new(mesh.name, mesh)
+        sb_mesh = bpy.data.meshes.new(prefix + "-Physics")
+        sb_physics_obj = bpy.data.objects.new(sb_mesh.name, sb_mesh)
         col = bpy.context.collection
         col.objects.link(sb_physics_obj)
         bpy.context.view_layer.objects.active = sb_physics_obj
@@ -1606,13 +1633,27 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         verts = [(0, 0, 0)]
         edges = []
         faces = []
-        mesh.from_pydata(verts, edges, faces)
+        sb_mesh.from_pydata(verts, edges, faces)
 
         vx_group = bpy.context.active_object.vertex_groups.new(name='mass')
         vx_indeces = [0]
         vx_group.add(vx_indeces, 1.0, 'ADD')
 
         sb_physics_obj.parent = rig
+
+        # creation of a proxy to enable datasmith-based workflow
+        proxy_mesh = bpy.data.meshes.new(prefix + "-Proxy")
+        proxy_obj = bpy.data.objects.new(proxy_mesh.name, proxy_mesh)
+        col = bpy.context.collection
+        col.objects.link(proxy_obj)
+        bpy.context.view_layer.objects.active = proxy_obj
+
+        verts = [(-1.0e-05, -1.0e-05, 0.0), (-1.0e-05, 1.0e-05, 0.0), (1.0e-05, 1.0e-05, 0.0), (1.0e-05, -1.0e-05, 0.0)]
+
+        edges = []
+        faces = [[0, 1, 2, 3]]
+        proxy_mesh.from_pydata(verts, edges, faces)
+        proxy_obj.parent = rig
 
         return {'FINISHED'}
 
@@ -1626,9 +1667,9 @@ class OBJECT_OT_armatureCarDeformationRig(bpy.types.Operator):
         else:
             b.tail.y += b.tail.z
 
-        target_obj_name = self.target_objects_name.get(name)
-        if target_obj_name is not None and target_obj_name in bpy.context.scene.objects:
-            target_obj = bpy.context.scene.objects[target_obj_name]
+        target_obj = self.target_objects.get(name)
+
+        if target_obj is not None:
             if name == 'Body':
                 b.tail = b.head
                 b.tail.y += target_obj.dimensions[1] / 2 if target_obj.dimensions and target_obj.dimensions[0] != 0 else 1
