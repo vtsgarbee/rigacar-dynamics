@@ -1238,27 +1238,6 @@ class ArmatureGenerator(object):
                 if m.type == "SOFT_BODY":
                     sb_physics_obj = c
 
-        # creation of 4 location constraints to follow wheels
-        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
-        tmp_constr.target = self.ob
-        tmp_constr.subtarget = "GroundSensor.Ft.L"
-        tmp_constr.influence = 1
-
-        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
-        tmp_constr.target = self.ob
-        tmp_constr.subtarget = "GroundSensor.Ft.R"
-        tmp_constr.influence = 0.333333
-
-        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
-        tmp_constr.target = self.ob
-        tmp_constr.subtarget = "GroundSensor.Bk.L"
-        tmp_constr.influence = 0.333333
-
-        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
-        tmp_constr.target = self.ob
-        tmp_constr.subtarget = "GroundSensor.Bk.R"
-        tmp_constr.influence = 0.333333
-
         # connection of suspension ctrl
         susp_ctrl = self.ob.pose.bones.get("Suspension")
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
@@ -1277,7 +1256,7 @@ class ArmatureGenerator(object):
         tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
         tmp_constr.target = sb_physics_obj
         tmp_constr.subtarget = "mass"
-        tmp_constr.influence = 0.25
+        tmp_constr.influence = 0.05
         tmp_constr.use_x = False
         tmp_constr.use_y = True
         tmp_constr.use_z = False
@@ -1286,6 +1265,51 @@ class ArmatureGenerator(object):
         tmp_constr.space_object = self.ob
         tmp_constr.space_subtarget = "Root"
         # create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
+
+        tmp_constr = susp_ctrl.constraints.new("COPY_LOCATION")
+        tmp_constr.target = sb_physics_obj
+        tmp_constr.subtarget = "mass"
+        tmp_constr.influence = 0.5
+        tmp_constr.use_x = False
+        tmp_constr.use_y = False
+        tmp_constr.use_z = True
+        tmp_constr.target_space = "CUSTOM"
+        tmp_constr.owner_space = "CUSTOM"
+        tmp_constr.space_object = self.ob
+        tmp_constr.space_subtarget = "Root"
+        # create_constraint_influence_driver(self.ob, tmp_constr, '["sb_pitch"]')
+
+        # creation of 4 location constraints to follow wheels
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Ft.L"
+        tmp_constr.use_z = False
+        tmp_constr.influence = 1
+
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Ft.R"
+        tmp_constr.use_z = False
+        tmp_constr.influence = 0.333333
+
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Bk.L"
+        tmp_constr.use_z = False
+        tmp_constr.influence = 0.333333
+
+        tmp_constr = sb_physics_obj.constraints.new("COPY_LOCATION")
+        tmp_constr.target = self.ob
+        tmp_constr.subtarget = "GroundSensor.Bk.R"
+        tmp_constr.use_z = False
+        tmp_constr.influence = 0.333333
+
+        sb_physics_obj.location = [0, 0, 0]
+        susp_ctrl_w_loc = self.ob.location + susp_ctrl.head
+
+        print(f"OCIO {self.ob.location} {susp_ctrl.location}")
+
+        sb_physics_obj.location = [0, 0, susp_ctrl_w_loc[2]]
 
 
     def set_origin(self, scene):
